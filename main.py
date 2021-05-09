@@ -65,59 +65,81 @@ def extract_bracket_count(data, original_data=None):
 
 
 def extract_regex_pattern_2d(data):
-    pattern_found = re.search('\d*\.?\d*x{1}\d*\.?\d*', data)
-    if pattern_found:
-        found = pattern_found.group(0)
+    pattern_cm_int = re.search('\d+x{1}\d+', data)
+    pattern_cm_decimal = re.search('\d+\.\d+x{1}\d+\.\d+', data)
+    if pattern_cm_decimal:
+        found = pattern_cm_decimal.group(0)
+        return found
+    elif pattern_cm_int:
+        found = pattern_cm_int.group(0)
         return found
     else:
         return 'not_processed'
 
 
 def extract_regex_pattern_1d(data):
-    pattern_found = re.search('\d+\.\d+', data)
-    if pattern_found:
-        found = pattern_found.group(0)
+    pattern_cm_int = re.search('\d+', data)
+    pattern_cm_decimal = re.search('\d+\.\d+', data)
+
+    if pattern_cm_decimal:
+        found = pattern_cm_decimal.group(0)
+        return found
+    elif pattern_cm_int:
+        found = pattern_cm_int.group(0)
         return found
     else:
         return 'not_processed'
 
 
 def extract_dimension_in_cm(dim):
+    result = 'not_processed'
     if pd.isna(dim) or dim.lower() == 'dimensionsunavailable':
-        return 'not_processed'
+        return result
     if not 'cm' in dim:
-        return 'not_processed'
+        return result
 
     str = dim.replace('approx', '').lower()
+    d2 = extract_regex_pattern_2d(str)
+    d1 = extract_regex_pattern_1d(str)
 
-    if extract_bracket_count(dim) == 0:
+    #str = 'l.63/4inches17.1cm'
+    if extract_bracket_count(str) == 1 and 'cm' not in extract_bracket(str):
+        cm_data = extract_regex_pattern_1d(str)
+        # return cm_data
+        result = cm_data
+    elif extract_bracket_count(str) == 0:
         is_regex_found = False
-        if 'inches' in dim:
-            cm_data = [x for x in dim.split('inches') if 'cm' in x][0]
+        if 'inches' in str:
+            cm_data = [x for x in str.split('inches') if 'cm' in x][0]
             if cm_data:
                 found = extract_regex_pattern_2d(cm_data)
-                is_regex_found = True if found else False
+                is_regex_found = True if found != 'not_processed' else False
         if not is_regex_found:
-            found = extract_regex_pattern_1d(dim)
-            is_regex_found = True if found else False
-        return found if is_regex_found else 'not_processed'
+            found = extract_regex_pattern_1d(str)
+            is_regex_found = True if found != 'not_processed' else False
+        result = found if is_regex_found else 'not_processed'
+        # return found if is_regex_found else 'not_processed'
+
 
     elif 'cm' in str and extract_bracket_count(str) == 1 and \
             ';' not in str and 'cm' not in extract_bracket(str):
         cm_data = [x for x in str.split(extract_bracket(str)) if 'cm' in x][0]
         found = extract_regex_pattern_2d(cm_data)
-        return found
+        result = found
+        # return found
 
     elif extract_bracket_count(str, original_data=str) == 1:
         bracket = extract_bracket(str)
         if 'cm' in bracket and 'x' in bracket:
             bracket = extract_numeric_data(bracket)
-            return bracket  # 'sheet: 1 7/8 x 1 1/8 in. (4.8 x 2.8 cm)'
+            result = bracket
+            # return bracket  # 'sheet: 1 7/8 x 1 1/8 in. (4.8 x 2.8 cm)'
         elif 'cm' in bracket and 'x' not in bracket:
             bracket = extract_numeric_data(bracket)
-            return bracket  # 'h. 6 1/2 in. (16.5 cm)'
+            # return bracket  # 'h. 6 1/2 in. (16.5 cm)'
+            result = bracket
 
-    elif extract_bracket_count(str) > 1:
+    elif ';' in str and extract_bracket_count(str) > 1:
         bracket_list = []
         bracket = str
         for x in str.split(';'):
@@ -127,9 +149,18 @@ def extract_dimension_in_cm(dim):
                     bracket = extract_numeric_data(bracket)
                     bracket_list.append(bracket)
                 bracket = 'x'.join(bracket_list)
-        return bracket  # 'h. 2 1/4 in. (5.7 cm); diam. 7 5/8 in. (19.4 cm)'
+        # return bracket  # 'h. 2 1/4 in. (5.7 cm); diam. 7 5/8 in. (19.4 cm)'
+        result = bracket
     else:
-        return 'not_processed'
+        general_2d = extract_regex_pattern_2d(str)
+        general_1d = extract_regex_pattern_1d(str)
+        found = general_2d if general_2d != 'not_processed' else general_1d
+        # return 'not_processed' if not found else found
+        result = 'not_processed' if not found else found
+
+    if result == 'not_processed':
+        s = str
+    return result
 
 
 def pre_process():
