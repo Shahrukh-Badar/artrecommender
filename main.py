@@ -7,13 +7,15 @@ def dimention_transfomation(dim):
         return dim
     for x in range(0, 10):
         dim = dim.replace(str(x), '#')
-    return dim
+    return dim.replace('\r', '').replace('\n', '').strip()
 
 
 def get_statics_by_occurrence(df):
-    dff = df.groupby(['NewDim']).count()
-    dff.reset_index(inplace=True)
-    dff.sort_values(by='Dimensions', ascending=False)
+    df_grp = df.groupby('NewDim').first().reset_index()
+    dff = df.groupby(['NewDim']).count().reset_index()
+    dff = dff.rename(columns={'Dimensions': 'count'})
+    dff = dff.sort_values(by='count', ascending=False)
+    dff = pd.merge(dff, df_grp, on='NewDim')
     dff.to_csv('occurrence.csv', encoding='utf8')
     return dff
 
@@ -21,7 +23,7 @@ def get_statics_by_occurrence(df):
 def get_distinct_dimensions(df):
     x = df.Dimensions.unique()
     df = pd.DataFrame(data=x, columns=['Dimensions'])
-    df = pd.read_csv('all_dis_dim.csv',encoding='utf8')
+    df = pd.to_csv('all_dis_dim.csv', encoding='utf8')
     return df
 
 
@@ -33,9 +35,6 @@ def data_preprocessing():
 
     df_s = get_statics_by_occurrence(df.copy())
     s = 1
-
-
-
 
 
 data_preprocessing()
