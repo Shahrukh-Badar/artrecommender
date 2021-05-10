@@ -102,7 +102,7 @@ def extract_dimension_in_cm(dim):
     d2 = extract_regex_pattern_2d(str)
     d1 = extract_regex_pattern_1d(str)
 
-    #str = 'l.63/4inches17.1cm'
+    # str = 'l.63/4inches17.1cm'
     if extract_bracket_count(str) == 1 and 'cm' not in extract_bracket(str):
         cm_data = extract_regex_pattern_1d(str)
         # return cm_data
@@ -174,6 +174,18 @@ def pre_process():
     s = 2
 
 
+def pre_process_original_data():
+    columns_to_read = {'Object ID': 'int', 'Dimensions': 'str'}
+    df = pd.read_csv('MetObjects.csv', encoding='utf8', usecols=columns_to_read.keys(), dtype=columns_to_read)
+    df['Dimensions'] = df['Dimensions'].fillna('dimensionsunavailable')
+    df['Dimensions'] = df['Dimensions'].apply(lambda x: string_cleaning(x))
+    df['Dimensions_clean'] = df.apply(lambda x: extract_dimension_in_cm(x['Dimensions']), axis=1)
+    df_s = get_statics_by_occurrence(df.copy())
+    # df = df.loc[(~df['Dimensions'].str.contains('cm', na=False))]
+
+    d = 2
+
+
 # approximately 14.3 x 9.9 cm (5 5/8 x 3 7/8 in.)
 # l. 4 3/4 x w. 6 3/4 inches (approx.) 12.1 x 17.1 cm
 # mounts approximately: 8.9 x 17.8 cm (3 1/2 x 7 in.)
@@ -187,4 +199,5 @@ def pre_process():
 #
 # s = 3
 # data_preprocessing()
-pre_process()
+# pre_process()
+pre_process_original_data()
