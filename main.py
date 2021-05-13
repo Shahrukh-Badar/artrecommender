@@ -64,7 +64,6 @@ def extract_dimension_in_cm(dim):
     if ';' in dim:
         s = 2
 
-    # dim = 'h.29-1/2,w.16-3/4,d.16inches(74.9x42.6x40.7cm.)seath.15-1/4inches(38.8cm.)'
     cm_str_orig = dim
     cm_str = replace_non_numeric_brackets(dim)
     bracket_data = extract_all_brackets_with_data(cm_str, [])
@@ -106,6 +105,7 @@ def pre_process():
 
 def pre_process_original_data():
     regenerate = False
+
     if regenerate:
         columns_to_read = {'Object ID': 'int', 'Dimensions': 'str'}
         df = pd.read_csv('MetObjects.csv', encoding='utf8', usecols=columns_to_read.keys(), dtype=columns_to_read)
@@ -115,13 +115,20 @@ def pre_process_original_data():
         # df = pd.read_csv('intermediate.csv', encoding='utf8')
         df['Dim_clean'] = df['Dimensions'].apply(lambda x: string_cleaning(x))
         df['Dim_processed'] = df.apply(lambda x: extract_dimension_in_cm(x['Dim_clean']), axis=1)
-        df.to_csv('processed.csv', encoding='utf8', index=True)
+
+        # df.to_csv('processed.csv', encoding='utf8', index=True)
+    elif 1 == 12:
+        columns_to_read = {'Object ID': 'int', 'Dim_processed': 'str'}
+        df = pd.read_csv('processed.csv', encoding='utf8', usecols=columns_to_read.keys(), dtype=columns_to_read)
+        df = pd.Series(data=df['Dim_processed'], index=df['Object ID'])
+        s = 2
     else:
         columns_to_read = {'Object ID': 'int', 'Dimensions': 'str'}
         df = pd.read_csv('MetObjects.csv', encoding='utf8', usecols=columns_to_read.keys(), dtype=columns_to_read)
         df['Dim_clean'] = df['Dimensions'].apply(lambda x: string_cleaning(x))
         df['Dim_processed'] = df.apply(lambda x: extract_dimension_in_cm(x['Dim_clean']), axis=1)
-        w = 23
+        df = df.sort_values(by=['Object ID'], ascending=True)
+        df.to_csv('processed.csv', encoding='utf8', index=True)
     d = 2
 
 
@@ -145,4 +152,9 @@ def pre_process_original_data():
 # s = 3
 # data_preprocessing()
 # pre_process()
-pre_process_original_data()
+# pre_process_original_data()
+
+
+object_id = 566
+data = pd.read_pickle('final.pkl')
+s = 2
