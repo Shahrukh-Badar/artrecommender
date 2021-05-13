@@ -65,15 +65,15 @@ def extract_regex_pattern_3d(data):
 
 
 def extract_regex_pattern_1d(data):
-    pattern_cm_int = re.search('\d+', data)
+    # pattern_cm_int = re.search('\d+', data)
     pattern_cm_decimal = re.search('\d+\.*\d*', data)
 
     if pattern_cm_decimal:
         found = pattern_cm_decimal.group(0)
         return found
-    elif pattern_cm_int:
-        found = pattern_cm_int.group(0)
-        return found
+    # elif pattern_cm_int:
+    #     found = pattern_cm_int.group(0)
+    #     return found
     else:
         return 'not_processed'
 
@@ -111,3 +111,13 @@ def truncate_unwanted_part(data):
         if all(x in data for x in [to_truncate, to_keep]):
             return ''.join([y for y in data.split(to_truncate) if to_keep in y])
     return data
+
+
+def extract_only_valid_dimension(data):
+    general_3d = extract_regex_pattern_3d(data)
+    general_2d = extract_regex_pattern_2d(data)
+    general_1d = extract_regex_pattern_1d(data)
+    result = general_3d if general_3d != 'not_processed' else 'not_processed'
+    result = result if result != 'not_processed' else general_2d
+    result = result if result != 'not_processed' else general_1d
+    return result
