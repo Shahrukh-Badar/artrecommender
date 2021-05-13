@@ -61,70 +61,28 @@ def extract_dimension_in_cm(dim):
         return result
     if not 'cm' in dim:
         return result
-    if '34.1x27.0cm(137/16x105/8in.)' in dim:
+    if ';' in dim:
         s = 2
 
     # dim = 'h.29-1/2,w.16-3/4,d.16inches(74.9x42.6x40.7cm.)seath.15-1/4inches(38.8cm.)'
     cm_str_orig = dim
-    # cm_str = dim.replace('–', '').replace('()', '')  # remp
-    # cm_str = extract_image_and_sheet_data(dim)
     cm_str = replace_non_numeric_brackets(dim)
-    # cm_str = truncate_unwanted_part(cm_str)
     bracket_data = extract_all_brackets_with_data(cm_str, [])
     bracket_count = len(bracket_data)  # extract_bracket_count(cm_str)
-    # if all(x in cm_str for x in ['overall', 'other']):
-    #     result = extract_regex_pattern_2d(cm_str)  # ignoring other dimension in data
-    # elif 'image' in cm_str:
-    #     s = 2
-    # cm_str = 'l.63/4inches17.1cm'
-    if bracket_count == 1 and 'cm' not in bracket_data[0]:
-        cm_data = cm_str.replace(bracket_data[0], '')
-        cm_data = extract_regex_pattern_2d(cm_str) if 'x' in cm_data else extract_regex_pattern_1d(cm_str)
-        # cm_data = extract_regex_pattern_1d(cm_str)
-        # return cm_data
-        result = cm_data
-    elif bracket_count == 0:
-        # is_regex_found = False
+
+    if bracket_count == 0:
         found = 'not_processed'
         if 'inches' in cm_str:
             cm_data = [x for x in cm_str.split('inches') if 'cm' in x]
             if cm_data:
                 found = extract_only_valid_dimension(cm_data[0])
                 result = found
-                # is_regex_found = True if found != 'not_processed' else False
-        # if not is_regex_found:
-        # else:
-        #     found = extract_only_valid_dimension(cm_str)
-        #     result = found
-
-        #     is_regex_found = True if found != 'not_processed' else False
-        # result = found if is_regex_found else 'not_processed'
-        # return found if is_regex_found else 'not_processed'
-
-
-    elif 'cm' in cm_str and bracket_count == 1 and \
-            ';' not in cm_str and 'cm' not in bracket_data[0]:
-        cm_data = [x for x in cm_str.split(bracket_data[0]) if 'cm' in x][0]
-        found = extract_regex_pattern_2d(cm_data)
-        result = found
-        # return found
-
-    elif bracket_count == 1 and 'cm' in bracket_data[0]:  # Extract single bracket either 1D|2D|3D
-        cm_data = extract_cm_inside_single_bracket(extract_all_brackets_with_data(cm_str_orig, [])[0])
-        result = cm_data
-
-    elif bracket_count > 1:  # Extract 1D,2D,3D data only
-        # extracted_brackets = extract_all_brackets_with_data(cm_str, [])
-        # if len(extracted_brackets) in [2, 3] and all(['x' in x for x in extracted_brackets]) \
-        #         and all(extract_regex_pattern_2d(x) != 'not_processed' for x in extracted_brackets):
-        #     cm_data = extract_regex_pattern_2d(cm_str)  # get only first if multiple pairs exists
-        #     result = cm_data
-        # el
-        if bracket_count in [2, 3] and all(['x' not in x for x in bracket_data]) \
+    elif bracket_count >= 1:
+        if bracket_count in [1, 2, 3] and all(['x' not in x for x in bracket_data]) \
                 and all(extract_regex_pattern_1d(x) != 'not_processed' for x in bracket_data):
             cm_data = 'x'.join(extract_regex_pattern_1d(x) for x in bracket_data)
             result = cm_data
-        elif bracket_count > 1:
+        else:
             cm_data = [extract_cm_inside_single_bracket(x) for x in bracket_data if 'cm' in x]
             result = cm_data[0] if cm_data else 'not_processed'  # get only first if multiple pairs exists
 
@@ -151,7 +109,6 @@ def pre_process_original_data():
     if regenerate:
         columns_to_read = {'Object ID': 'int', 'Dimensions': 'str'}
         df = pd.read_csv('MetObjects.csv', encoding='utf8', usecols=columns_to_read.keys(), dtype=columns_to_read)
-        # df['Dimensions'] = df['Dimensions'].fillna('dimensionsunavailable')
         df['Dim_pattern'] = df['Dimensions'].apply(lambda x: dimention_transfomation(x))
         df = get_statics_by_occurrence(df, 'Dim_pattern')
         # df.to_csv('intermediate.csv', encoding='utf8', index=True)
@@ -163,12 +120,12 @@ def pre_process_original_data():
         columns_to_read = {'Object ID': 'int', 'Dimensions': 'str'}
         df = pd.read_csv('MetObjects.csv', encoding='utf8', usecols=columns_to_read.keys(), dtype=columns_to_read)
         df['Dim_clean'] = df['Dimensions'].apply(lambda x: string_cleaning(x))
-
         df['Dim_processed'] = df.apply(lambda x: extract_dimension_in_cm(x['Dim_clean']), axis=1)
         w = 23
     d = 2
 
 
+# df['Dimensions'] = df['Dimensions'].fillna('dimensionsunavailable')
 # df = df.loc[(df["Dim_clean"].str.contains('image', na=False))]
 # del df['Dim_processed']
 # df = df.loc[(~df['Dimensions'].str.contains('cm', na=False))]
