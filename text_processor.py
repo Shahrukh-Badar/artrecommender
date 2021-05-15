@@ -4,7 +4,9 @@ import pandas as pd
 
 class TextProcessor:
     @staticmethod
-    def replace_non_numeric_brackets(data):
+    def process_brackets(data):
+        if '9/16x3/16x1/2in.' in data:
+            sd = 22
         brackets = TextProcessor.extract_all_brackets_with_data(data, [])
         for bracket in brackets:
             bracket_data = bracket.replace('(', '').replace(')', '').replace(',', '')
@@ -12,7 +14,16 @@ class TextProcessor:
                 data = data.replace(bracket, '')
             if 'cm' not in bracket_data:
                 data = data.replace(bracket, '')
+            if not any([x.isnumeric() for x in bracket_data]):
+                data = data.replace(bracket, '', 1)
+
         return data
+
+    @staticmethod
+    def post_process_brackets(data):
+        # remove cm for such cases (70.8cmx87.3cmx84.5cm) so that regex can work
+        #
+        return data.replace('diam', '').replace('cm', '').replace('h', '').replace('d', '')
 
     @staticmethod
     def extract_all_brackets_with_data(data, brackets=[]):
@@ -30,7 +41,8 @@ class TextProcessor:
 
     @staticmethod
     def extract_regex_pattern_2d(data):
-        pattern_cm_decimal = re.search('\d+\.*\d*x{1}\d+\.*\d+', data)
+        data = TextProcessor.post_process_brackets(data)
+        pattern_cm_decimal = re.search('\d+\.*\d*x{1}\d+\.*\d*', data)
         if pattern_cm_decimal:
             found = pattern_cm_decimal.group(0)
             return found
@@ -39,7 +51,8 @@ class TextProcessor:
 
     @staticmethod
     def extract_regex_pattern_3d(data):
-        pattern_cm_decimal = re.search('\d+\.*\d+x{1}\d+\.*\d+x{1}\d+\.*\d+', data)
+        data =TextProcessor.post_process_brackets(data)
+        pattern_cm_decimal = re.search('\d+\.*\d*x{1}\d+\.*\d*x{1}\d+\.*\d*', data)
         if pattern_cm_decimal:
             found = pattern_cm_decimal.group(0)
             return found
@@ -48,6 +61,7 @@ class TextProcessor:
 
     @staticmethod
     def extract_regex_pattern_1d(data):
+        data = data.replace('cm', '')
         pattern_cm_decimal = re.search('\d+\.*\d*', data)
         if pattern_cm_decimal:
             found = pattern_cm_decimal.group(0)
@@ -105,7 +119,7 @@ class TextProcessor:
             data = data.lower()
             data = 'dimensionsunavailable' if pd.isna(data) else data.replace('\n', ' ').replace('\r', '') \
                 .replace('×', 'x').replace(' ', '').replace('approx.', '').replace('–', '-').replace('()', '').strip()
-
+            data = data.replace('x.', 'x0.')  # for such cases (26.7x26.7x.14cm) where number starts with point
             return data  # data.translate({ord(c): "" for c in "!@$%^&*[]{}:,<>?\|`~-=_+"})
 
     @staticmethod
