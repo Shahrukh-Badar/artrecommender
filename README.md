@@ -10,7 +10,7 @@ This program will recommend you the art based on the input dimensions.
 #### Dimension patters:
 - Top 3 patterns occurred around more than `80000` times` (50000+20000+10000)`
 - There are around `28000` patterns which are unique and exists only single time.
-- Data Statics can be seen from the function `get_statics()` inside `data_analysis.py`
+- Data Statics can be seen from the function `get_statics()` inside `data_analysis.py` which is by default disable, it can be enable from configurations in `constant.py` -> `CNF_ENABLE_DATA_STATICS` 
 
 #### Extraction and Assumptions
 * It will only extract the dimensions which are in cm.
@@ -30,16 +30,17 @@ This program will recommend you the art based on the input dimensions.
             * For example: it will not check height comes first or diameter comes in second, because this h. for height is not constant and so on.
             * It will extract it till 3rd bracket and discard the data which have 4 brackets because 4D does not make sense.
 * In case of such data where cm is outside brackets
-    * `l.15.2cm(6.2in.)  -> output : 5.2`
+    * `l.15.2cm(6.2in.)  -> output : 15.2`
 * In case of no brackets, for example
     * `l.17xw.31/2inches43.2x8.9cm -> output : 43.2x8.9`
-* In cases where multiple pairs of dimension are available, it will only consider the first, either its 1D, 2D or 3D.
+* In cases where multiple pairs of dimension are available, it will only consider the first, either its 1D, 2D or 3D, (but it fill start from 3D)
     * `image(left):50.8x34.2cm(20x137/16in.)sheet(left):54.7x38.2cm(219/16x151/16in.)image(center):50.8x75.4cm(20x2911/16in.)sheet(center):54.7x79.3cm(219/16x311/4in.)image(right):50.8x34cm(20x133/8in.)sheet(right):54.7x38.2cm(219/16x151/16in.)  -> output : 50.8x34.2`
     * Mostly object type images, painting and drawing have such data.
-* In the end if not any above rules match, it will perform dirty guess, which can be disable by config. But mostly data can be processed with above rules.
+* In the end if not any above rules match, it will perform dirty guess, which can be disable by config. But mostly data can be processed with above rules. `(dirty guess also starts from looking higher dimensions first)`
     * `h.10-3/4in.sq.xw.1-1/4in.thick(27.3cm.sq.x3.2cm.thick)  -> dirty guess 27.3`
-    *` h.20xw.24xd.1inches(50.8x61.0xd.2.5cm)  -> dirty guess 50.8x61.0`
+    * `h.20xw.24xd.1inches(50.8x61.0xd.2.5cm)  -> dirty guess 50.8x61.0`
     * `h.113/4xw.211/2xl.371/4in.(29.8x211/2x94.6cm)  -> dirty guess 29.8x211`
+        * it can be enable|disable from configurations in `constant.py` -> `CNF_ENABLE_DIRTY_GUESS` 
 * It will not process such data, for example
     * `42ft.x18in.(504in.x45.7cm)` where data is mixture of cm and inches.
     * `h.13in.(cm);w.231/4in.(cm)` when cm does not have any numerical value (only 1 record have this data)
@@ -66,7 +67,7 @@ This program will recommend you the art based on the input dimensions.
         * return `not_processed`
 * Index it on Object Id
 * Save it as pickle file
-    * used pickle file because it will save exact representation and reduce the loading time as compared to csv, and does not need to process data after loading.
+    * used pickle file because it will save exact representation and reduce the loading time as compared to csv, and does not need to process data after loading as processed data have index on it for better efficiency.
 * Once saved it will again loaded in to memory for future seaches
     
  
@@ -87,13 +88,24 @@ This program will recommend you the art based on the input dimensions.
     * call `does_it_fit` method to get the result
         * accept object id and dimension as input paramenter
         * return True|False as output
-        * this method has an option to match smartly, where it will not consider the placement in dimentions
+        * this method has an option to match smartly, where it will not consider the placement in dimensions (can be enable|disable from configurations in `constant.py` -> `CNF_ENABLE_SMART_MATCH` )
             * for example, for dimension 1x2x3
                 * if this feature is enable it will match any order of this dimension
                     * input of 1x2x3 will successfully match with
                         * 1x3x2 | 3x2x1 | 2x3x1
             
-## _How to run the Converter:_
+## _How to run:_
+
+### _Docker_
+
+* Locate `Dockerfile` 
+
+* Make sure requirement.txt exists else generate it by `pip freeze > requirements.txt`
+
+* Build docker image: `docker build -t artrecommenderdocker .`
+
+* Run docker image: `docker  run -it artrecommenderdocker /bin/bash`
+   
 
 ### _Local_
 * Install `python 3.9`
@@ -107,14 +119,3 @@ This program will recommend you the art based on the input dimensions.
 * Run python script `main.py` 
 
 * For test, run python script `main_test.py`
-### _Docker_
-
-* Locate `Dockerfile` 
-
-* Make sure requirement.txt exists else generate it by `pip freeze > requirements.txt`
-
-* Build docker image: `docker build -t artrecommenderdocker .`
-
-* Run docker image: `docker  run -it artrecommenderdocker /bin/bash`
-   
-

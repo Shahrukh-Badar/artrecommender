@@ -1,5 +1,6 @@
 import re
 import pandas as pd
+import constant as constant
 
 
 class TextProcessor:
@@ -10,7 +11,7 @@ class TextProcessor:
             bracket_data = bracket.replace('(', '').replace(')', '').replace(',', '')
             if all([x.isalpha() for x in bracket_data]):
                 data = data.replace(bracket, '')
-            if 'cm' not in bracket_data:
+            if constant.STR_CM not in bracket_data:
                 data = data.replace(bracket, '')
             if not any([x.isnumeric() for x in bracket_data]):
                 data = data.replace(bracket, '', 1)
@@ -19,7 +20,7 @@ class TextProcessor:
     @staticmethod
     def post_process_brackets(data):
         # remove cm for such cases (70.8cmx87.3cmx84.5cm) so that regex can work
-        return data.replace('diam', '').replace('cm', '').replace('h', '').replace('d', '')
+        return data.replace('diam', '').replace(constant.STR_CM, '').replace('h', '').replace('d', '')
 
     @staticmethod
     def extract_all_brackets_with_data(data, brackets=[]):
@@ -43,27 +44,27 @@ class TextProcessor:
             found = pattern_cm_decimal.group(0)
             return found
         else:
-            return 'not_processed'
+            return constant.STR_NOT_PROCESSED
 
     @staticmethod
     def extract_regex_pattern_3d(data):
-        data =TextProcessor.post_process_brackets(data)
+        data = TextProcessor.post_process_brackets(data)
         pattern_cm_decimal = re.search('\d+\.*\d*x{1}\d+\.*\d*x{1}\d+\.*\d*', data)
         if pattern_cm_decimal:
             found = pattern_cm_decimal.group(0)
             return found
         else:
-            return 'not_processed'
+            return constant.STR_NOT_PROCESSED
 
     @staticmethod
     def extract_regex_pattern_1d(data):
-        data = data.replace('cm', '')
+        data = data.replace(constant.STR_CM, '')
         pattern_cm_decimal = re.search('\d+\.*\d*', data)
         if pattern_cm_decimal:
             found = pattern_cm_decimal.group(0)
             return found
         else:
-            return 'not_processed'
+            return constant.STR_NOT_PROCESSED
 
     @staticmethod
     def extract_cm_inside_single_bracket(bracket):
@@ -78,42 +79,22 @@ class TextProcessor:
             return bracket
 
     @staticmethod
-    def extract_image_and_sheet_data(data):
-        not_in = ['imageandsheet', 'imagesandsheets', 'image and sheet']
-        data = data.replace('image():', '')
-        data = data.replace('image(a):', '')
-        if any(x in data for x in not_in):
-            return data
-
-        return ''.join(
-            [x for x in data.split('sheet') if
-             'image' in x]) if 'image' in data and 'sheet' in data else data
-
-    @staticmethod
-    def truncate_unwanted_part(data):
-        unwanted_part = {'averagetextsize': 'overall', 'other': 'overall', 'mount': 'diam'}
-        for to_truncate, to_keep in unwanted_part.items():
-            if all(x in data for x in [to_truncate, to_keep]):
-                return ''.join([y for y in data.split(to_truncate) if to_keep in y])
-        return data
-
-    @staticmethod
     def extract_only_valid_dimension(data):
         general_3d = TextProcessor.extract_regex_pattern_3d(data)
         general_2d = TextProcessor.extract_regex_pattern_2d(data)
         general_1d = TextProcessor.extract_regex_pattern_1d(data)
-        result = general_3d if general_3d != 'not_processed' else 'not_processed'
-        result = result if result != 'not_processed' else general_2d
-        result = result if result != 'not_processed' else general_1d
+        result = general_3d if general_3d != constant.STR_NOT_PROCESSED else constant.STR_NOT_PROCESSED
+        result = result if result != constant.STR_NOT_PROCESSED else general_2d
+        result = result if result != constant.STR_NOT_PROCESSED else general_1d
         return result
 
     @staticmethod
     def string_cleaning(data):
         if pd.isna(data):
-            return 'dimensionsunavailable'
+            return constant.STR_DIMENSION_UNAVAILABLE
         else:
             data = data.lower()
-            data = 'dimensionsunavailable' if pd.isna(data) else data.replace('\n', ' ').replace('\r', '') \
+            data = constant.STR_DIMENSION_UNAVAILABLE if pd.isna(data) else data.replace('\n', ' ').replace('\r', '') \
                 .replace('×', 'x').replace(' ', '').replace('approx.', '').replace('–', '-').replace('()', '').strip()
             data = data.replace('x.', 'x0.')  # for such cases (26.7x26.7x.14cm) where number starts with point
             return data
@@ -121,7 +102,7 @@ class TextProcessor:
     @staticmethod
     def dimension_transformation(dim):
         if pd.isna(dim):
-            return 'dimensionsunavailable'
+            return constant.STR_DIMENSION_UNAVAILABLE
         for x in range(0, 10):
             dim = dim.replace(str(x), '#')
         for x in range(5, 1, -1):

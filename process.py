@@ -1,5 +1,6 @@
 from text_processor import *
 from extractor import Extractor
+import constant as constant
 
 
 class ProcessDimension:
@@ -11,28 +12,38 @@ class ProcessDimension:
 
     @classmethod
     def data_ingestion(cls):
-        columns_to_read = {'Object ID': 'int', 'Dimensions': 'str'}
-        cls.raw_data = pd.read_csv('openaccess/MetObjects.csv', encoding='utf8', usecols=columns_to_read.keys(),
+        print(constant.MSG_LOAD_DATA)
+        columns_to_read = constant.INPUT_FILE_COLUMNS_TO_READ
+        cls.raw_data = pd.read_csv(constant.INPUT_FILE_PATH, encoding=constant.INPUT_FILE_ENCODING,
+                                   usecols=columns_to_read.keys(),
                                    dtype=columns_to_read)
 
     @classmethod
     def data_processing(cls):
+        print(constant.MSG_TRANSFORM_DATA)
         df = cls.raw_data
         del cls.raw_data
-        df['Dimensions'] = df['Dimensions'].fillna('dimensionsunavailable')
-        df['Dimensions'] = df['Dimensions'].apply(lambda x: TextProcessor.string_cleaning(x))
-        df['Dimensions'] = df.apply(lambda x: Extractor.extract_dimension_in_cm(x['Dimensions']), axis=1)
-        df['Object ID'] = pd.to_numeric(df['Object ID'], downcast='integer')
-        df.set_index('Object ID', inplace=True)
+        df[constant.COL_DIMENSIONS] = df[constant.COL_DIMENSIONS].fillna(constant.STR_DIMENSION_UNAVAILABLE)
+        df[constant.COL_DIMENSIONS] = df[constant.COL_DIMENSIONS].apply(lambda x: TextProcessor.string_cleaning(x))
+        df[constant.COL_DIMENSIONS_CLEAN] = df[constant.COL_DIMENSIONS]
+        df[constant.COL_DIMENSIONS] = df.apply(lambda x: Extractor.extract_dimension_in_cm(x[constant.COL_DIMENSIONS]),
+                                               axis=1)
+
+        # df[df[constant.COL_DIMENSIONS] == constant.STR_NOT_PROCESSED]
+        del df[constant.COL_DIMENSIONS_CLEAN] # NOTE: put breakpoint here to check the orignal data along with processed data
+
+        df[constant.COL_OBJECT_ID] = pd.to_numeric(df[constant.COL_OBJECT_ID], downcast=constant.STR_INTEGER)
+        df.set_index(constant.COL_OBJECT_ID, inplace=True)
         cls.raw_data = df
 
     @classmethod
     def data_storage(cls):
-        cls.raw_data.to_pickle('result.pkl')
+        print(constant.MSG_SAVE_DATA)
+        cls.raw_data.to_pickle(constant.OUTPUT_FILE_PATH)
 
     @classmethod
     def data_access(cls):
-        cls.result = pd.read_pickle('result.pkl')
+        cls.result = pd.read_pickle(constant.OUTPUT_FILE_PATH)
 
     @classmethod
     def process(cls):
@@ -46,35 +57,42 @@ class ProcessDimension:
         try:
             return cls.result.loc[object_id]
         except KeyError:
-            raise KeyError('Object Id not fount.')
+            raise KeyError(constant.MSG_OBJECT_ID_NOT_FOUND)
         except NameError:
-            raise NameError('Object Id is invalid.')
+            raise NameError(constant.MSG_OBJECT_ID_INVALID)
+
+    @classmethod
+    def print_does_it_fit_info(cls, info):
+        if constant.CNF_DOES_IT_FIT_LOGS:
+            print(info)
 
     @classmethod
     def does_it_fit(cls, object_id, dimension):
-        smart_match = False
         try:
-            print('Input object id->' + str(object_id))
-            print('Input dimension->' + str(dimension))
+            ProcessDimension.print_does_it_fit_info(
+                f'{constant.STR_INPUT} {constant.COL_OBJECT_ID} {constant.STR_ARROW}' + str(object_id))
+            ProcessDimension.print_does_it_fit_info(
+                f'{constant.STR_INPUT}  {constant.COL_DIMENSIONS}{constant.STR_ARROW}' + str(dimension))
             data = cls.get_result(int(object_id))[0]
-            print('Extracted dimension->' + str(data))
-            if smart_match and all([x in data.split('x') for x in dimension.split('x')]):
-                print('Returning->True')
+            ProcessDimension.print_does_it_fit_info(
+                f'{constant.STR_EXTRACTED} {constant.COL_DIMENSIONS}{constant.STR_ARROW}' + str(data))
+            if constant.CNF_ENABLE_SMART_MATCH and all([x in data.split('x') for x in dimension.split('x')]):
+                ProcessDimension.print_does_it_fit_info(f'{constant.MSG_RETURNING}{constant.MSG_TRUE}')
                 return True
             elif dimension.strip() == data.strip():
-                print('Returning->True')
+                ProcessDimension.print_does_it_fit_info(f'{constant.MSG_RETURNING}{constant.MSG_TRUE}')
                 return True
-            elif data == 'not_processed':
-                print('Returning->False')
+            elif data == constant.STR_NOT_PROCESSED:
+                ProcessDimension.print_does_it_fit_info(f'{constant.MSG_RETURNING}{constant.MSG_FALSE}')
                 return False
             else:
-                print('Returning->False')
+                ProcessDimension.print_does_it_fit_info(f'{constant.MSG_RETURNING}{constant.MSG_FALSE}')
                 return False
         except KeyError:
-            print('Object Id not found.')
-            print('Returning->False')
+            ProcessDimension.print_does_it_fit_info(constant.MSG_OBJECT_ID_NOT_FOUND)
+            ProcessDimension.print_does_it_fit_info(f'{constant.MSG_RETURNING}{constant.MSG_FALSE}')
             return False
         except ValueError:
-            print('Object Id must be numeric.')
-            print('Returning->False')
+            ProcessDimension.print_does_it_fit_info(constant.MSG_OBJECT_MUST_BE_NUMERIC)
+            ProcessDimension.print_does_it_fit_info(f'{constant.MSG_RETURNING}{constant.MSG_FALSE}')
             return False
