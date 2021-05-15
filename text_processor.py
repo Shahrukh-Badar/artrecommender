@@ -5,8 +5,6 @@ import pandas as pd
 class TextProcessor:
     @staticmethod
     def process_brackets(data):
-        if '9/16x3/16x1/2in.' in data:
-            sd = 22
         brackets = TextProcessor.extract_all_brackets_with_data(data, [])
         for bracket in brackets:
             bracket_data = bracket.replace('(', '').replace(')', '').replace(',', '')
@@ -16,13 +14,11 @@ class TextProcessor:
                 data = data.replace(bracket, '')
             if not any([x.isnumeric() for x in bracket_data]):
                 data = data.replace(bracket, '', 1)
-
         return data
 
     @staticmethod
     def post_process_brackets(data):
         # remove cm for such cases (70.8cmx87.3cmx84.5cm) so that regex can work
-        #
         return data.replace('diam', '').replace('cm', '').replace('h', '').replace('d', '')
 
     @staticmethod
@@ -120,7 +116,7 @@ class TextProcessor:
             data = 'dimensionsunavailable' if pd.isna(data) else data.replace('\n', ' ').replace('\r', '') \
                 .replace('×', 'x').replace(' ', '').replace('approx.', '').replace('–', '-').replace('()', '').strip()
             data = data.replace('x.', 'x0.')  # for such cases (26.7x26.7x.14cm) where number starts with point
-            return data  # data.translate({ord(c): "" for c in "!@$%^&*[]{}:,<>?\|`~-=_+"})
+            return data
 
     @staticmethod
     def dimension_transformation(dim):

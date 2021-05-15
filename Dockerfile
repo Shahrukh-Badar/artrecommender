@@ -11,12 +11,3 @@ COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]
-
-
-
-#   pip freeze > requirements.txt
-#   docker build -t artrecommenderdocker .
-#   docker run artrecommenderdocker
-#   docker  run -it artrecommenderdocker /bin/bash
-#   docker system prune
-#   docker rmi $(docker images --filter “dangling=true” -q --no-trunc)

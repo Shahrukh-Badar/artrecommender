@@ -57,7 +57,7 @@ class ProcessDimension:
             print('Input object id->' + str(object_id))
             print('Input dimension->' + str(dimension))
             data = cls.get_result(int(object_id))[0]
-            print('Extracted dimension->' + str(dimension))
+            print('Extracted dimension->' + str(data))
             if smart_match and all([x in data.split('x') for x in dimension.split('x')]):
                 print('Returning->True')
                 return True
