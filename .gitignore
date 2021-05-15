@@ -126,3 +126,7 @@ dmypy.json
 .idea/
 
 *.csv
+
+final.pkl
+
+*.pkl
