@@ -32,7 +32,7 @@ def get_distinct_dimensions(df):
 
 def extract_dimension_in_cm(dim):
     result = 'not_processed'
-    if pd.isna(dim) or dim.lower() == 'dimensionsunavailable':
+    if dim.lower() == 'dimensionsunavailable':
         return result
     if not 'cm' in dim:
         return result
@@ -149,13 +149,14 @@ class ProcessDimension:
     @classmethod
     def data_ingestion(cls):
         columns_to_read = {'Object ID': 'int', 'Dimensions': 'str'}
-        cls.raw_data = pd.read_csv('MetObjects.csv', encoding='utf8', usecols=columns_to_read.keys(),
+        cls.raw_data = pd.read_csv('openaccess/MetObjects.csv', encoding='utf8', usecols=columns_to_read.keys(),
                                    dtype=columns_to_read, nrows=10000)
 
     @classmethod
     def data_processing(cls):
         df = cls.raw_data
         del cls.raw_data
+        df['Dimensions'] = df['Dimensions'].fillna('dimensionsunavailable')
         df['Dimensions'] = df['Dimensions'].apply(lambda x: TextProcessor.string_cleaning(x))
         df['Dimensions'] = df.apply(lambda x: extract_dimension_in_cm(x['Dimensions']), axis=1)
         df = df.sort_values(by=['Object ID'], ascending=True)
@@ -179,10 +180,19 @@ class ProcessDimension:
 
     @classmethod
     def does_it_fit(cls, object_id, dimensions):
+        smart_match = False
         try:
-            dimension = cls.result[object_id]
-            print(dimension)
-            return False if dimension == 'not_processed' else True
+            print('input->' + str(object_id) + ',' + str(dimensions))
+            data = cls.result[int(object_id)]
+            print(data)
+            if smart_match and all([x in data.split('x') for x in dimensions.split('x')]):
+                return True
+            elif dimensions.strip() == data.strip():
+                return True
+            elif data == 'not_processed':
+                return False
+            else:
+                return False
         except KeyError:
             print('Object Id not found.')
             return False
@@ -190,4 +200,14 @@ class ProcessDimension:
 
 if __name__ == "__main__":
     process_dimension = ProcessDimension()
-    process_dimension.does_it_fit(266)
+    while True:
+        print('Please enter object id.')
+        object_id = input()  # 1000
+        print('Please enter dimension.')
+        dimension = input()  # '135.6x186.4x46.7'
+        if dimension:
+            print(process_dimension.does_it_fit(object_id, dimension))
+            print('Please enter q to quit and enter to continue.')
+            stop = input()
+            if stop.strip() == 'q':
+                break
